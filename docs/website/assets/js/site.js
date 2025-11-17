@@ -164,31 +164,45 @@
 // site.js 中更新 setDoc 方法（约 163-196 行）
 setDoc(id, forceRefresh = false) {
   // 如果是同一文档且不强制刷新，直接返回
-  const cleanId = id.replace(/\.md$/, '');
-  if (!forceRefresh && this.activeDocId === cleanId) return;
+  if (!forceRefresh && this.activeDocId === id) return;
 
   if (!id) return;
-  this.activeDocId = cleanId;
+  this.activeDocId = id;
   this.searchOpen && this.closeSearch();
   this.docLoading = true;
 
-  // 动态加载Markdown文件
-      const loadMarkdown = async () => {
+  // 尝试使用嵌入的文档内容（支持本地直接打开）
+  const loadMarkdown = () => {
+    return new Promise((resolve) => {
+      // 优先使用嵌入的文档内容
+      if (window.__scDocs && window.__scDocs[id]) {
+        resolve(window.__scDocs[id]);
+      } else {
+        // 回退到服务器加载
         try {
-          // 仅使用内嵌的文档内容（由docs-inline.js提供）
-          const docsContent = window.__scDocs || {};
-          const content = docsContent[cleanId];
+          // 从data-docs属性获取文档根路径（默认为../docs）
+          const docsPath = document.body?.dataset?.docs || '../docs';
+          // 添加时间戳避免缓存（强制刷新时）
+          const timestamp = forceRefresh ? `?t=${Date.now()}` : '';
+          const url = `${docsPath}/${id}.md${timestamp}`;
           
-          if (content) {
-            return content;
-          } else {
-            throw new Error(`内嵌文档内容不存在: ${cleanId}`);
-          }
+          fetch(url)
+            .then(response => {
+              if (!response.ok) throw new Error(`文件不存在: ${url}`);
+              return response.text();
+            })
+            .then(text => resolve(text))
+            .catch(e => {
+              console.error('加载Markdown失败:', e);
+              resolve(`# 内容加载失败\n\n无法加载文档 "${id}". 错误: ${e.message}`);
+            });
         } catch (e) {
           console.error('加载Markdown失败:', e);
-          return `# 内容加载失败\n\n无法加载文档 "${cleanId}". 错误: ${e.message}\n\n请确保：\n1. 已正确生成 docs-inline.js 文件\n2. docs-inline.js 文件已正确嵌入到 HTML 中\n3. 文档 ID "${cleanId}" 存在于 docs-inline.js 中`;
+          resolve(`# 内容加载失败\n\n无法加载文档 "${id}". 错误: ${e.message}`);
         }
-      };
+      }
+    });
+  };
 
   // 处理加载后的Markdown内容
   loadMarkdown().then(markdown => {
