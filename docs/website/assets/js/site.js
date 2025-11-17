@@ -175,24 +175,18 @@ setDoc(id, forceRefresh = false) {
   // 动态加载Markdown文件
       const loadMarkdown = async () => {
         try {
-          // 优先使用内嵌的文档内容（由docs-inline.js提供）
+          // 仅使用内嵌的文档内容（由docs-inline.js提供）
           const docsContent = window.__scDocs || {};
           const content = docsContent[cleanId];
           
           if (content) {
             return content;
+          } else {
+            throw new Error(`内嵌文档内容不存在: ${cleanId}`);
           }
-          // 如果没有内嵌内容，再从服务器加载
-          const docsPath = document.body?.dataset?.docs || '../docs';
-          const timestamp = forceRefresh ? `?t=${Date.now()}` : '';
-          const url = `${docsPath}/${cleanId}.md${timestamp}`;
-          
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`文件不存在: ${url}`);
-          return await response.text();
         } catch (e) {
           console.error('加载Markdown失败:', e);
-          return `# 内容加载失败\n\n无法加载文档 "${cleanId}". 错误: ${e.message}`;
+          return `# 内容加载失败\n\n无法加载文档 "${cleanId}". 错误: ${e.message}\n\n请确保：\n1. 已正确生成 docs-inline.js 文件\n2. docs-inline.js 文件已正确嵌入到 HTML 中\n3. 文档 ID "${cleanId}" 存在于 docs-inline.js 中`;
         }
       };
 
