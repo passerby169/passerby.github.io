@@ -172,22 +172,27 @@ setDoc(id, forceRefresh = false) {
   this.docLoading = true;
 
   // 动态加载Markdown文件
-  const loadMarkdown = async () => {
-    try {
-      // 从data-docs属性获取文档根路径（默认为../docs）
-      const docsPath = document.body?.dataset?.docs || '../docs';
-      // 添加时间戳避免缓存（强制刷新时）
-      const timestamp = forceRefresh ? `?t=${Date.now()}` : '';
-      const url = `${docsPath}/${id}.md${timestamp}`;
-      
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`文件不存在: ${url}`);
-      return await response.text();
-    } catch (e) {
-      console.error('加载Markdown失败:', e);
-      return `# 内容加载失败\n\n无法加载文档 "${id}". 错误: ${e.message}`;
-    }
-  };
+      const loadMarkdown = async () => {
+        try {
+          // 优先使用内嵌的文档内容（由docs-inline.js提供）
+          const docsContent = window.__scDocs || {};
+          if (docsContent[id]) {
+            return docsContent[id];
+          }
+          // 如果没有内嵌内容，再从URL加载
+          const docsPath = document.body?.dataset?.docs || '../docs';
+          // 添加时间戳避免缓存（强制刷新时）
+          const timestamp = forceRefresh ? `?t=${Date.now()}` : '';
+          const url = `${docsPath}/${id}.md${timestamp}`;
+          
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`文件不存在: ${url}`);
+          return await response.text();
+        } catch (e) {
+          console.error('加载Markdown失败:', e);
+          return `# 内容加载失败\n\n无法加载文档 "${id}". 错误: ${e.message}`;
+        }
+      };
 
   // 处理加载后的Markdown内容
   loadMarkdown().then(markdown => {
