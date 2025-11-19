@@ -149,7 +149,7 @@
       },
       resolveLink(path) {
         if (!path || /^https?:/.test(path)) return path
-        const base = document.body?.dataset?.root || '.'
+        const base = document.querySelector('base')?.getAttribute('href') || document.body?.dataset?.root || '.'
         const trimmed = base.replace(/\/+$/, '')
         const cleaned = path.replace(/^\/+/, '')
         if (!trimmed || trimmed === '.') return `./${cleaned}`
